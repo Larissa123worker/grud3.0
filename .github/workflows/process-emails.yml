@@ -1,0 +1,16 @@
+name: Process Scheduled Emails
+on:
+  schedule:
+    - cron: '*/5 * * * *'  # Executa a cada 5 minutos
+  workflow_dispatch:  # Permite executar manualmente
+
+jobs:
+  process:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Process Scheduled Emails
+        run: |
+          curl -X POST 'https://hedxxbsieoazrmbayzab.supabase.co/functions/v1/process-scheduled-emails' \
+            -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhlZHh4YnNpZW9henJtYmF5emFiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDczNjAxNjQsImV4cCI6MjA2MjkzNjE2NH0.pPjEGJ0gTtLxeGUrkDeuh_7zkQWGbD2liccv8kRPJXw' \
+            -H 'Content-Type: application/json' \
+            -d '{}'
