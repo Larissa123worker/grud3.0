@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { supabase } from '../lib/supabase';
-import { Plus, Trash2, Save } from 'lucide-react';
+import { Plus, Trash2, Save, Eye } from 'lucide-react';
 
 interface EmailData {
   sequence_number: number;
@@ -19,6 +19,7 @@ export function CampaignForm() {
   ]);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState('');
+  const [previewEmail, setPreviewEmail] = useState<number | null>(null);
 
   const updateEmail = (index: number, field: keyof EmailData, value: string | number) => {
     const updated = [...emails];
@@ -30,7 +31,7 @@ export function CampaignForm() {
     if (emails.length < 4) {
       const nextSequence = emails.length + 1;
       const defaultDelay = nextSequence === 1 ? 0.0833 : nextSequence === 2 ? 12 : nextSequence === 3 ? 24 : 48;
-      setEmails([
+      const newEmails = [
         ...emails,
         {
           sequence_number: nextSequence,
@@ -38,7 +39,9 @@ export function CampaignForm() {
           html_content: '',
           delay_hours: defaultDelay,
         },
-      ]);
+      ];
+      setEmails(newEmails);
+      setPreviewEmail(newEmails.length - 1); // Abrir preview automaticamente para o novo email
     }
   };
 
@@ -184,6 +187,15 @@ export function CampaignForm() {
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent font-mono text-sm"
                   placeholder="<h1>Olá {{name}}</h1><p>Seu conteúdo aqui...</p>"
                 />
+                <div className="flex justify-end mt-2">
+                  <button
+                    onClick={() => setPreviewEmail(index)}
+                    className="flex items-center gap-2 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
+                  >
+                    <Eye size={20} />
+                    Visualizar
+                  </button>
+                </div>
               </div>
 
               <div>
@@ -225,6 +237,28 @@ export function CampaignForm() {
         <Save size={20} />
         {saving ? 'Salvando...' : 'Salvar Campanha'}
       </button>
+
+      {previewEmail !== null && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-4xl w-full max-h-[80vh] overflow-auto">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-semibold text-gray-800">
+                Prévia: {emails[previewEmail].subject || 'Sem assunto'}
+              </h3>
+              <button
+                onClick={() => setPreviewEmail(null)}
+                className="text-gray-500 hover:text-gray-700 text-2xl leading-none"
+              >
+                ×
+              </button>
+            </div>
+            <div
+              className="border border-gray-300 rounded-lg p-4 bg-gray-50"
+              dangerouslySetInnerHTML={{ __html: emails[previewEmail].html_content }}
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 }
