@@ -24,7 +24,7 @@ export interface ScheduledEmail {
   recipient_name: string;
   scheduled_for: string;
   sent_at: string | null;
-  status: 'pending' | 'sent' | 'failed';
+  status: 'pending' | 'sent' | 'failed' | 'cancelled';
   error_message: string | null;
   created_at: string;
 }

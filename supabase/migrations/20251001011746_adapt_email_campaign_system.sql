@@ -35,7 +35,7 @@ CREATE TABLE IF NOT EXISTS scheduled_emails (
   status text NOT NULL DEFAULT 'pending',
   error_message text,
   created_at timestamptz DEFAULT now(),
-  CONSTRAINT valid_status CHECK (status IN ('pending', 'sent', 'failed'))
+  CONSTRAINT valid_status CHECK (status IN ('pending', 'sent', 'failed', 'cancelled'))
 );
 
 -- Create indexes
@@ -97,8 +97,8 @@ DECLARE
   user_email text;
   user_name text;
 BEGIN
-  -- Get user email and display name from auth.users
-  SELECT "Email", "Display name" INTO user_email, user_name
+  -- Get user email and name from auth.users
+  SELECT email, raw_user_meta_data->>'name' INTO user_email, user_name
   FROM auth.users
   WHERE id = NEW.user_id;
 

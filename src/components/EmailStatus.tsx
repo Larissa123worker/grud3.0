@@ -1,12 +1,12 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
 import { ScheduledEmail } from '../types/database';
-import { Clock, CheckCircle, XCircle, Mail } from 'lucide-react';
+import { Clock, CheckCircle, XCircle, Mail, Ban, Trash2 } from 'lucide-react';
 
 export function EmailStatus() {
   const [emails, setEmails] = useState<ScheduledEmail[]>([]);
   const [loading, setLoading] = useState(true);
-  const [filter, setFilter] = useState<'all' | 'pending' | 'sent' | 'failed'>('all');
+  const [filter, setFilter] = useState<'all' | 'pending' | 'sent' | 'failed' | 'cancelled'>('all');
 
   useEffect(() => {
     loadEmails();
@@ -47,6 +47,46 @@ export function EmailStatus() {
     ? emails
     : emails.filter(email => email.status === filter);
 
+  const cancelEmail = async (id: string) => {
+    if (!confirm('Tem certeza que deseja cancelar este email? Ele não será enviado.')) {
+      return;
+    }
+
+    try {
+      const { error } = await supabase
+        .from('scheduled_emails')
+        .update({ status: 'cancelled', error_message: 'Cancelado pelo usuário' })
+        .eq('id', id)
+        .eq('status', 'pending');
+
+      if (error) throw error;
+      loadEmails();
+    } catch (error) {
+      console.error('Error cancelling email:', error);
+      alert('Erro ao cancelar email.');
+    }
+  };
+
+  const deleteCancelledEmails = async () => {
+    if (!confirm('Tem certeza que deseja excluir TODOS os emails cancelados? Esta ação não pode ser desfeita.')) {
+      return;
+    }
+
+    try {
+      const { error } = await supabase
+        .from('scheduled_emails')
+        .delete()
+        .eq('status', 'cancelled');
+
+      if (error) throw error;
+      loadEmails();
+      alert('Emails cancelados excluídos com sucesso!');
+    } catch (error) {
+      console.error('Error deleting cancelled emails:', error);
+      alert('Erro ao excluir emails cancelados.');
+    }
+  };
+
   const getStatusIcon = (status: string) => {
     switch (status) {
       case 'pending':
@@ -55,16 +95,19 @@ export function EmailStatus() {
         return <CheckCircle size={20} className="text-green-600" />;
       case 'failed':
         return <XCircle size={20} className="text-red-600" />;
+      case 'cancelled':
+        return <Ban size={20} className="text-gray-600" />;
       default:
         return <Mail size={20} className="text-gray-600" />;
     }
   };
 
   const getStatusBadge = (status: string) => {
-    const classes = {
+    const classes: Record<string, string> = {
       pending: 'bg-yellow-100 text-yellow-800',
       sent: 'bg-green-100 text-green-800',
       failed: 'bg-red-100 text-red-800',
+      cancelled: 'bg-gray-100 text-gray-800',
     };
     return classes[status] || 'bg-gray-100 text-gray-800';
   };
@@ -82,8 +125,8 @@ export function EmailStatus() {
       <div className="flex items-center justify-between mb-6">
         <h2 className="text-3xl font-bold text-gray-800">Status dos Emails</h2>
 
-        <div className="flex gap-2">
-          {['all', 'pending', 'sent', 'failed'].map((f) => (
+        <div className="flex items-center gap-2">
+          {['all', 'pending', 'sent', 'failed', 'cancelled'].map((f) => (
             <button
               key={f}
               onClick={() => setFilter(f as any)}
@@ -93,9 +136,17 @@ export function EmailStatus() {
                   : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
               }`}
             >
-              {f === 'all' ? 'Todos' : f.charAt(0).toUpperCase() + f.slice(1)}
+              {f === 'all' ? 'Todos' : f === 'cancelled' ? 'Cancelados' : f.charAt(0).toUpperCase() + f.slice(1)}
             </button>
           ))}
+
+          <button
+            onClick={deleteCancelledEmails}
+            className="flex items-center justify-center w-10 h-10 bg-red-100 text-red-700 hover:bg-red-200 rounded-lg transition-colors"
+            title="Excluir todos os emails cancelados"
+          >
+            <Trash2 size={18} />
+          </button>
         </div>
       </div>
 
@@ -121,11 +172,19 @@ export function EmailStatus() {
                     <p className="text-sm text-gray-600">{email.recipient_email}</p>
                     <div className="flex items-center gap-4 mt-2 text-xs text-gray-500">
                       <span>
-                        Agendado: {new Date(email.scheduled_for).toLocaleString('pt-BR')}
+                        Agendado: {new Date(email.scheduled_for).toLocaleString('pt-BR', {
+                          timeZone: 'America/Sao_Paulo',
+                          dateStyle: 'short',
+                          timeStyle: 'short'
+                        })}
                       </span>
                       {email.sent_at && (
                         <span>
-                          Enviado: {new Date(email.sent_at).toLocaleString('pt-BR')}
+                          Enviado: {new Date(email.sent_at).toLocaleString('pt-BR', {
+                            timeZone: 'America/Sao_Paulo',
+                            dateStyle: 'short',
+                            timeStyle: 'short'
+                          })}
                         </span>
                       )}
                     </div>
@@ -136,6 +195,17 @@ export function EmailStatus() {
                     )}
                   </div>
                 </div>
+
+                {email.status === 'pending' && (
+                  <button
+                    onClick={() => cancelEmail(email.id)}
+                    className="flex items-center gap-2 px-3 py-2 bg-red-100 text-red-700 hover:bg-red-200 rounded-lg font-medium transition-colors text-sm"
+                    title="Cancelar envio"
+                  >
+                    <Ban size={16} />
+                    Cancelar
+                  </button>
+                )}
               </div>
             </div>
           ))}

@@ -12,10 +12,10 @@ interface EmailData {
 export function CampaignForm() {
   const [campaignName, setCampaignName] = useState('');
   const [emails, setEmails] = useState<EmailData[]>([
-    { sequence_number: 1, subject: '', html_content: '', delay_hours: 0 },
-    { sequence_number: 2, subject: '', html_content: '', delay_hours: 24 },
-    { sequence_number: 3, subject: '', html_content: '', delay_hours: 72 },
-    { sequence_number: 4, subject: '', html_content: '', delay_hours: 168 },
+    { sequence_number: 1, subject: '', html_content: '', delay_hours: 0.0833 }, // 5 minutes
+    { sequence_number: 2, subject: '', html_content: '', delay_hours: 12 },    // 12 hours
+    { sequence_number: 3, subject: '', html_content: '', delay_hours: 24 },    // 24 hours
+    { sequence_number: 4, subject: '', html_content: '', delay_hours: 48 },    // 48 hours
   ]);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState('');
@@ -28,13 +28,15 @@ export function CampaignForm() {
 
   const addEmail = () => {
     if (emails.length < 4) {
+      const nextSequence = emails.length + 1;
+      const defaultDelay = nextSequence === 1 ? 0.0833 : nextSequence === 2 ? 12 : nextSequence === 3 ? 24 : 48;
       setEmails([
         ...emails,
         {
-          sequence_number: emails.length + 1,
+          sequence_number: nextSequence,
           subject: '',
           html_content: '',
-          delay_hours: 0,
+          delay_hours: defaultDelay,
         },
       ]);
     }
@@ -65,7 +67,7 @@ export function CampaignForm() {
     setMessage('');
 
     try {
-      const { data: existingCampaigns } = await supabase
+      await supabase
         .from('campaigns')
         .update({ is_active: false })
         .eq('is_active', true);
@@ -99,13 +101,13 @@ export function CampaignForm() {
       setMessage('Campanha criada com sucesso!');
       setCampaignName('');
       setEmails([
-        { sequence_number: 1, subject: '', html_content: '', delay_hours: 0 },
-        { sequence_number: 2, subject: '', html_content: '', delay_hours: 24 },
-        { sequence_number: 3, subject: '', html_content: '', delay_hours: 72 },
-        { sequence_number: 4, subject: '', html_content: '', delay_hours: 168 },
+        { sequence_number: 1, subject: '', html_content: '', delay_hours: 0.0833 }, // 5 minutes
+        { sequence_number: 2, subject: '', html_content: '', delay_hours: 12 },    // 12 hours
+        { sequence_number: 3, subject: '', html_content: '', delay_hours: 24 },    // 24 hours
+        { sequence_number: 4, subject: '', html_content: '', delay_hours: 48 },    // 48 hours
       ]);
     } catch (error) {
-      setMessage(`Erro: ${error.message}`);
+      setMessage(`Erro: ${error instanceof Error ? error.message : 'Erro desconhecido'}`);
     } finally {
       setSaving(false);
     }
@@ -186,18 +188,18 @@ export function CampaignForm() {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Atraso (horas)
+                  Horário de Envio
                 </label>
-                <input
-                  type="number"
-                  value={email.delay_hours}
-                  onChange={(e) => updateEmail(index, 'delay_hours', parseInt(e.target.value) || 0)}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  placeholder="0"
-                  min="0"
-                />
+                <div className="w-full px-4 py-2 bg-gray-100 border border-gray-300 rounded-lg">
+                  <span className="text-gray-700 font-medium">
+                    {email.sequence_number === 1 && "5 minutos após o cadastro"}
+                    {email.sequence_number === 2 && "12 horas após o cadastro"}
+                    {email.sequence_number === 3 && "24 horas após o cadastro"}
+                    {email.sequence_number === 4 && "48 horas após o cadastro"}
+                  </span>
+                </div>
                 <p className="text-sm text-gray-500 mt-1">
-                  Enviar após {email.delay_hours} horas do cadastro
+                  Horário fixo em São Paulo (GMT-3)
                 </p>
               </div>
             </div>

@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
 import { Campaign } from '../types/database';
-import { CheckCircle, XCircle, Mail } from 'lucide-react';
+import { CheckCircle, XCircle, Mail, Trash2 } from 'lucide-react';
 
 export function CampaignList() {
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
@@ -48,6 +48,25 @@ export function CampaignList() {
     }
   };
 
+  const deleteCampaign = async (id: string, name: string) => {
+    if (!confirm(`Tem certeza que deseja excluir a campanha "${name}"? Esta ação não pode ser desfeita.`)) {
+      return;
+    }
+
+    try {
+      const { error } = await supabase
+        .from('campaigns')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+      loadCampaigns();
+    } catch (error) {
+      console.error('Error deleting campaign:', error);
+      alert('Erro ao excluir campanha. Verifique se ela não está sendo usada.');
+    }
+  };
+
   if (loading) {
     return (
       <div className="w-full max-w-4xl bg-white rounded-lg shadow-lg p-8">
@@ -85,26 +104,39 @@ export function CampaignList() {
                   </div>
                 </div>
 
-                <button
-                  onClick={() => toggleCampaign(campaign.id, campaign.is_active)}
-                  className={`flex items-center gap-2 px-4 py-2 rounded-lg font-semibold transition-colors ${
-                    campaign.is_active
-                      ? 'bg-green-100 text-green-700 hover:bg-green-200'
-                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                  }`}
-                >
-                  {campaign.is_active ? (
-                    <>
-                      <CheckCircle size={20} />
-                      Ativa
-                    </>
-                  ) : (
-                    <>
-                      <XCircle size={20} />
-                      Inativa
-                    </>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => toggleCampaign(campaign.id, campaign.is_active)}
+                    className={`flex items-center gap-2 px-4 py-2 rounded-lg font-semibold transition-colors ${
+                      campaign.is_active
+                        ? 'bg-green-100 text-green-700 hover:bg-green-200'
+                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                    }`}
+                  >
+                    {campaign.is_active ? (
+                      <>
+                        <CheckCircle size={20} />
+                        Ativa
+                      </>
+                    ) : (
+                      <>
+                        <XCircle size={20} />
+                        Inativa
+                      </>
+                    )}
+                  </button>
+
+                  {!campaign.is_active && (
+                    <button
+                      onClick={() => deleteCampaign(campaign.id, campaign.name)}
+                      className="flex items-center gap-2 px-4 py-2 bg-red-100 text-red-700 hover:bg-red-200 rounded-lg font-semibold transition-colors"
+                      title="Excluir campanha inativa"
+                    >
+                      <Trash2 size={20} />
+                      Excluir
+                    </button>
                   )}
-                </button>
+                </div>
               </div>
             </div>
           ))}
